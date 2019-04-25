@@ -71,7 +71,7 @@ func NewP2PPeers(name string, chainID string, startBlockNum uint32, peers []stri
 	return p
 }
 
-// RegisterHandler register handler to p2ppeers
+// RegisterHandler register handler to p2p peers
 func (p *P2PPeers) RegisterHandler(handler Handler) {
 	p.handlers = append(p.handlers, handler)
 }
@@ -94,6 +94,12 @@ func (p *P2PPeers) Start() {
 	}
 }
 
+func (p *P2PPeers) isClosed() bool {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+	return p.hasClosed
+}
+
 func (p *P2PPeers) createClient(idx int, client *p2p.Client) {
 	p.wg.Add(1)
 	go func() {
@@ -103,25 +109,20 @@ func (p *P2PPeers) createClient(idx int, client *p2p.Client) {
 			err := client.Start()
 
 			// check when after close client
-			p.mutex.RLock()
-			if p.hasClosed {
-				logger.Info("client close", zap.Int("client", idx))
+			if p.isClosed() {
 				return
 			}
-			p.mutex.RUnlock()
 
 			if err != nil {
 				logger.Error("client err", zap.Int("client", idx), zap.Error(err))
 			}
+
 			time.Sleep(3 * time.Second)
 
 			// check when after sleep
-			p.mutex.RLock()
-			if p.hasClosed {
-				logger.Info("client close", zap.Int("client", idx))
+			if p.isClosed() {
 				return
 			}
-			p.mutex.RUnlock()
 		}
 	}()
 }
@@ -135,7 +136,10 @@ func (p *P2PPeers) Close() {
 
 	for idx, client := range p.clients {
 		go func(i int, cli *p2p.Client) {
-			cli.CloseConnection()
+			err := cli.CloseConnection()
+			if err != nil {
+				logger.Error("client close err", zap.Int("client", i), zap.Error(err))
+			}
 			logger.Info("client close", zap.Int("client", i))
 		}(idx, client)
 	}
