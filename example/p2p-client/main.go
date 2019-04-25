@@ -46,7 +46,7 @@ func main() {
 	}
 
 	p2pPeers := blockev.NewP2PPeers("test", *chainID, uint32(*startNum), peers)
-	p2pPeers.RegisterHandler(blockev.HandlerLogger{})
+	p2pPeers.RegisterHandler(blockev.LoggerHandler{})
 	p2pPeers.RegisterHandler(blockev.P2PMsgHandler{})
 	p2pPeers.Start()
 

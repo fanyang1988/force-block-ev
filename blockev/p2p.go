@@ -33,10 +33,10 @@ func (f HandlerFunc) Handle(envelope *Envelope) {
 	f(envelope)
 }
 
-type HandlerLogger struct {
+type LoggerHandler struct {
 }
 
-func (f HandlerLogger) Handle(envelope *Envelope) {
+func (f LoggerHandler) Handle(envelope *Envelope) {
 	logger.Sugar().Infof("handler ev from %s by %s",
 		envelope.Peer, envelope.Packet.P2PMessage.String())
 }
