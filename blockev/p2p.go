@@ -52,7 +52,7 @@ type P2PPeers struct {
 }
 
 // NewP2PPeers new p2p peers from cfg
-func NewP2PPeers(name string, chainID string, peers []string) *P2PPeers {
+func NewP2PPeers(name string, chainID string, startBlockNum uint32, peers []string) *P2PPeers {
 	p := &P2PPeers{
 		name:     name,
 		clients:  make([]*p2p.Client, 0, len(peers)),
@@ -71,7 +71,7 @@ func NewP2PPeers(name string, chainID string, peers []string) *P2PPeers {
 		client := p2p.NewClient(
 			p2p.NewOutgoingPeer(peer, fmt.Sprintf("%s-%02d", name, idx), &p2p.HandshakeInfo{
 				ChainID:      cID,
-				HeadBlockNum: 1, // TODO from a block to sync
+				HeadBlockNum: startBlockNum,
 			}),
 			true,
 		)
