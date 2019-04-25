@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+
+	"github.com/fanyang1988/force-block-ev/blockdb"
 
 	eos "github.com/eosforce/goforceio"
 	"github.com/eosforce/goforceio/p2p"
@@ -28,10 +31,11 @@ func Wait() {
 }
 
 type handlerImp struct {
+	db *blockdb.BlockDB
 }
 
 func (h *handlerImp) OnBlock(peer string, msg *eos.SignedBlock) error {
-	return nil
+	return h.db.OnBlock(peer, msg)
 }
 func (h *handlerImp) OnGoAway(peer string, msg *eos.GoAwayMessage) error {
 	return nil
@@ -45,6 +49,8 @@ func (h *handlerImp) OnTimeMsg(peer string, msg *eos.TimeMessage) error {
 
 func main() {
 	flag.Parse()
+
+	runtime.GOMAXPROCS(8)
 
 	if *showLog {
 		p2p.EnableP2PLogging()
@@ -63,9 +69,14 @@ func main() {
 	}
 	peers = append(peers, "127.0.0.1:9999")
 
+	blocks := &blockdb.BlockDB{}
+	blocks.Init(peers)
+
 	p2pPeers := blockev.NewP2PPeers("test", *chainID, uint32(*startNum), peers)
 	p2pPeers.RegisterHandler(blockev.LoggerHandler{})
-	p2pPeers.RegisterHandler(blockev.NewP2PMsgHandler(&handlerImp{}))
+	p2pPeers.RegisterHandler(blockev.NewP2PMsgHandler(&handlerImp{
+		db: blocks,
+	}))
 	p2pPeers.Start()
 
 	Wait()
