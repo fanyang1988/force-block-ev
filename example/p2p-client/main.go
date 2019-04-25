@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	eos "github.com/eosforce/goforceio"
 	"github.com/eosforce/goforceio/p2p"
 	"github.com/fanyang1988/force-block-ev/blockev"
 )
@@ -24,6 +25,22 @@ func Wait() {
 		syscall.SIGQUIT,
 		syscall.SIGUSR1)
 	<-stopSignalChan
+}
+
+type handlerImp struct {
+}
+
+func (h *handlerImp) OnBlock(peer string, msg *eos.SignedBlock) error {
+	return nil
+}
+func (h *handlerImp) OnGoAway(peer string, msg *eos.GoAwayMessage) error {
+	return nil
+}
+func (h *handlerImp) OnHandshake(peer string, msg *eos.HandshakeMessage) error {
+	return nil
+}
+func (h *handlerImp) OnTimeMsg(peer string, msg *eos.TimeMessage) error {
+	return nil
 }
 
 func main() {
@@ -47,7 +64,7 @@ func main() {
 
 	p2pPeers := blockev.NewP2PPeers("test", *chainID, uint32(*startNum), peers)
 	p2pPeers.RegisterHandler(blockev.LoggerHandler{})
-	p2pPeers.RegisterHandler(blockev.P2PMsgHandler{})
+	p2pPeers.RegisterHandler(blockev.NewP2PMsgHandler(&handlerImp{}))
 	p2pPeers.Start()
 
 	Wait()
