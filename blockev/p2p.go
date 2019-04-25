@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
+	"time"
 
 	eos "github.com/eosforce/goforceio"
 	"github.com/eosforce/goforceio/p2p"
@@ -29,12 +30,14 @@ type Handler interface {
 
 // P2PPeers a manager for peers to diff p2p node
 type P2PPeers struct {
-	name     string
-	clients  []*p2p.Client
-	handlers []Handler
-	msgChan  chan Envelope
-	wg       sync.WaitGroup
-	chanWg   sync.WaitGroup
+	name      string
+	clients   []*p2p.Client
+	handlers  []Handler
+	msgChan   chan Envelope
+	wg        sync.WaitGroup
+	chanWg    sync.WaitGroup
+	hasClosed bool
+	mutex     sync.RWMutex
 }
 
 // NewP2PPeers new p2p peers from cfg
@@ -87,20 +90,49 @@ func (p *P2PPeers) Start() {
 	}()
 
 	for idx, client := range p.clients {
-		p.wg.Add(1)
-		go func(i int, cli *p2p.Client) {
-			defer p.wg.Done()
-			// TODO close
-			err := cli.Start()
-			if err != nil {
-				logger.Error("client err", zap.Int("client", i), zap.Error(err))
-			}
-		}(idx, client)
+		p.createClient(idx, client)
 	}
+}
+
+func (p *P2PPeers) createClient(idx int, client *p2p.Client) {
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		for {
+			logger.Info("create connect", zap.Int("client", idx))
+			err := client.Start()
+
+			// check when after close client
+			p.mutex.RLock()
+			if p.hasClosed {
+				logger.Info("client close", zap.Int("client", idx))
+				return
+			}
+			p.mutex.RUnlock()
+
+			if err != nil {
+				logger.Error("client err", zap.Int("client", idx), zap.Error(err))
+			}
+			time.Sleep(3 * time.Second)
+
+			// check when after sleep
+			p.mutex.RLock()
+			if p.hasClosed {
+				logger.Info("client close", zap.Int("client", idx))
+				return
+			}
+			p.mutex.RUnlock()
+		}
+	}()
 }
 
 func (p *P2PPeers) Close() {
 	logger.Warn("start close")
+
+	p.mutex.Lock()
+	p.hasClosed = true
+	p.mutex.Unlock()
+
 	for idx, client := range p.clients {
 		go func(i int, cli *p2p.Client) {
 			cli.CloseConnection()

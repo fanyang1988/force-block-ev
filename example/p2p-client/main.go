@@ -61,6 +61,7 @@ func main() {
 	for i := 0; i < maxNumListen; i++ {
 		peers = append(peers, fmt.Sprintf("127.0.0.1:%d", 8101+i))
 	}
+	peers = append(peers, "127.0.0.1:9999")
 
 	p2pPeers := blockev.NewP2PPeers("test", *chainID, uint32(*startNum), peers)
 	p2pPeers.RegisterHandler(blockev.LoggerHandler{})
