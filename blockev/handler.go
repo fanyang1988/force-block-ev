@@ -1,7 +1,7 @@
 package blockev
 
 import (
-	"github.com/eosforce/goeosforce/ecc"
+	"github.com/eosforce/goforceio/ecc"
 	"github.com/fanyang1988/force-block-ev/log"
 )
 
