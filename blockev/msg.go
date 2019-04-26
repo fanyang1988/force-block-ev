@@ -2,6 +2,7 @@ package blockev
 
 import (
 	eos "github.com/eosforce/goforceio"
+	"github.com/fanyang1988/force-block-ev/log"
 	"go.uber.org/zap"
 )
 
@@ -38,18 +39,14 @@ func (m P2PMsgHandler) Handle(envelope *Envelope) {
 	}
 
 	if err != nil {
-		logger.Error("handle msg err", zap.Error(err))
+		log.Logger().Error("handle msg err", zap.Error(err))
 	}
 }
 
 func (m P2PMsgHandler) handlerBlock(peer string, msg *eos.SignedBlock) error {
-	id, err := msg.BlockID()
-	if err != nil {
-		return err
-	}
-	logger.Debug("on block",
-		zap.String("peer", peer),
-		zap.Uint32("num", msg.BlockNumber()), zap.String("id", id.String()))
+	//log.Logger().Debug("on block",
+	//	zap.String("peer", peer),
+	//	zap.Uint32("num", msg.BlockNumber()), zap.String("id", id.String()))
 	if m.imp != nil {
 		return m.imp.OnBlock(peer, msg)
 	}
@@ -57,7 +54,7 @@ func (m P2PMsgHandler) handlerBlock(peer string, msg *eos.SignedBlock) error {
 }
 
 func (m P2PMsgHandler) handlerGoAway(peer string, msg *eos.GoAwayMessage) error {
-	logger.Debug("go away",
+	log.Logger().Debug("go away",
 		zap.String("peer", peer), zap.String("reason", msg.Reason.String()))
 	if m.imp != nil {
 		return m.imp.OnGoAway(peer, msg)
@@ -66,7 +63,7 @@ func (m P2PMsgHandler) handlerGoAway(peer string, msg *eos.GoAwayMessage) error 
 }
 
 func (m P2PMsgHandler) handlerTime(peer string, msg *eos.TimeMessage) error {
-	logger.Debug("on time",
+	log.Logger().Debug("on time",
 		zap.String("peer", peer), zap.String("time", msg.String()))
 	if m.imp != nil {
 		return m.imp.OnTimeMsg(peer, msg)
@@ -75,7 +72,7 @@ func (m P2PMsgHandler) handlerTime(peer string, msg *eos.TimeMessage) error {
 }
 
 func (m P2PMsgHandler) handlerHandshake(peer string, msg *eos.HandshakeMessage) error {
-	logger.Debug("on handshake",
+	log.Logger().Debug("on handshake",
 		zap.String("peer", peer), zap.String("handshake", msg.String()))
 	if m.imp != nil {
 		return m.imp.OnHandshake(peer, msg)

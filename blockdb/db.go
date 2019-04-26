@@ -8,25 +8,34 @@ import (
 // a Just simple imp
 
 type BlockDB struct {
-	peers map[string]*PeerBlockState
+	Peers map[string]*PeerBlockState
 }
 
 func (b *BlockDB) Init(peers []string) {
-	b.peers = make(map[string]*PeerBlockState, len(peers))
+	b.Peers = make(map[string]*PeerBlockState, len(peers))
 	for _, peer := range peers {
 		n := &PeerBlockState{
 			peer: peer,
 		}
 		n.init()
-		b.peers[peer] = n
+		b.Peers[peer] = n
 	}
 }
 
 func (b *BlockDB) OnBlock(peer string, block *eos.SignedBlock) error {
-	ps, ok := b.peers[peer]
+	ps, ok := b.Peers[peer]
 	if !ok || ps == nil {
 		return errors.New("no peer")
 	}
 
 	return ps.appendBlock(block)
+}
+
+func (b *BlockDB) DelBlockBefore(num uint32) {
+	if num <= 0 {
+		return
+	}
+	for _, stat := range b.Peers {
+		stat.DelBlockBefore(num)
+	}
 }

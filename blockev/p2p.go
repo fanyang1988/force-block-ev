@@ -7,16 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fanyang1988/force-block-ev/log"
+
 	eos "github.com/eosforce/goforceio"
 	"github.com/eosforce/goforceio/p2p"
 	"go.uber.org/zap"
 )
-
-var logger = zap.NewNop()
-
-func EnableLogging() {
-	logger = eos.NewLogger(false)
-}
 
 type Envelope struct {
 	Peer    string     `json:"peer"`
@@ -38,6 +34,7 @@ type P2PPeers struct {
 	chanWg    sync.WaitGroup
 	hasClosed bool
 	mutex     sync.RWMutex
+	logger    *zap.Logger
 }
 
 // NewP2PPeers new p2p peers from cfg
@@ -47,16 +44,17 @@ func NewP2PPeers(name string, chainID string, startBlockNum uint32, peers []stri
 		clients:  make([]*p2p.Client, 0, len(peers)),
 		handlers: make([]Handler, 0, 8),
 		msgChan:  make(chan Envelope, 64),
+		logger:   log.Logger(),
 	}
 
 	cID, err := hex.DecodeString(chainID)
 	if err != nil {
-		logger.Error("decode chain id err", zap.Error(err))
+		p.logger.Error("decode chain id err", zap.Error(err))
 		panic(err)
 	}
 
 	for idx, peer := range peers {
-		logger.Debug("new peer client", zap.Int("idx", idx), zap.String("peer", peer))
+		p.logger.Debug("new peer client", zap.Int("idx", idx), zap.String("peer", peer))
 		client := p2p.NewClient(
 			p2p.NewOutgoingPeer(peer, fmt.Sprintf("%s-%02d", name, idx), &p2p.HandshakeInfo{
 				ChainID:      cID,
@@ -83,7 +81,7 @@ func (p *P2PPeers) Start() {
 		for {
 			isStop := p.Loop()
 			if isStop {
-				logger.Info("p2p peers stop")
+				p.logger.Info("p2p peers stop")
 				return
 			}
 		}
@@ -105,7 +103,7 @@ func (p *P2PPeers) createClient(idx int, client *p2p.Client) {
 	go func() {
 		defer p.wg.Done()
 		for {
-			logger.Info("create connect", zap.Int("client", idx))
+			p.logger.Info("create connect", zap.Int("client", idx))
 			err := client.Start()
 
 			// check when after close client
@@ -114,7 +112,7 @@ func (p *P2PPeers) createClient(idx int, client *p2p.Client) {
 			}
 
 			if err != nil {
-				logger.Error("client err", zap.Int("client", idx), zap.Error(err))
+				p.logger.Error("client err", zap.Int("client", idx), zap.Error(err))
 			}
 
 			time.Sleep(3 * time.Second)
@@ -128,7 +126,7 @@ func (p *P2PPeers) createClient(idx int, client *p2p.Client) {
 }
 
 func (p *P2PPeers) Close() {
-	logger.Warn("start close")
+	p.logger.Warn("start close")
 
 	p.mutex.Lock()
 	p.hasClosed = true
@@ -138,9 +136,9 @@ func (p *P2PPeers) Close() {
 		go func(i int, cli *p2p.Client) {
 			err := cli.CloseConnection()
 			if err != nil {
-				logger.Error("client close err", zap.Int("client", i), zap.Error(err))
+				p.logger.Error("client close err", zap.Int("client", i), zap.Error(err))
 			}
-			logger.Info("client close", zap.Int("client", i))
+			p.logger.Info("client close", zap.Int("client", i))
 		}(idx, client)
 	}
 	p.wg.Wait()
@@ -158,7 +156,7 @@ func (p *P2PPeers) Loop() bool {
 	}
 
 	if !ok {
-		logger.Warn("p2p peers msg chan closed")
+		p.logger.Warn("p2p peers msg chan closed")
 		return true
 	}
 
@@ -166,7 +164,7 @@ func (p *P2PPeers) Loop() bool {
 		func(hh Handler) {
 			defer func() {
 				if err := recover(); err != nil {
-					logger.Error("handler process ev panic",
+					p.logger.Error("handler process ev panic",
 						zap.String("err", fmt.Sprintf("err:%s", err)),
 						zap.String("stack", string(debug.Stack())))
 				}

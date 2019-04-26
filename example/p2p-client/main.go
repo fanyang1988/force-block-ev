@@ -8,10 +8,13 @@ import (
 	"runtime"
 	"syscall"
 
+	"go.uber.org/zap"
+
+	"github.com/fanyang1988/force-block-ev/log"
+
 	"github.com/fanyang1988/force-block-ev/blockdb"
 
 	eos "github.com/eosforce/goforceio"
-	"github.com/eosforce/goforceio/p2p"
 	"github.com/fanyang1988/force-block-ev/blockev"
 )
 
@@ -31,11 +34,11 @@ func Wait() {
 }
 
 type handlerImp struct {
-	db *blockdb.BlockDB
+	verifier *blockdb.FastBlockVerifier
 }
 
 func (h *handlerImp) OnBlock(peer string, msg *eos.SignedBlock) error {
-	return h.db.OnBlock(peer, msg)
+	return h.verifier.OnBlock(peer, msg)
 }
 func (h *handlerImp) OnGoAway(peer string, msg *eos.GoAwayMessage) error {
 	return nil
@@ -47,17 +50,23 @@ func (h *handlerImp) OnTimeMsg(peer string, msg *eos.TimeMessage) error {
 	return nil
 }
 
+type verifyHandlerImp struct {
+}
+
+func (h *verifyHandlerImp) OnBlock(blockNum uint32, blockID eos.Checksum256, block *eos.SignedBlock) error {
+	log.Logger().Info("on checked block",
+		zap.Uint32("num", blockNum), zap.String("id", blockID.String()), zap.Int("trx num", len(block.Transactions)))
+	return nil
+}
+
 func main() {
 	flag.Parse()
 
 	runtime.GOMAXPROCS(8)
 
 	if *showLog {
-		p2p.EnableP2PLogging()
-		blockev.EnableLogging()
-
+		log.EnableLogging(false)
 	}
-	defer p2p.SyncLogger()
 
 	// from 9001 - 9020
 	const maxNumListen int = 20
@@ -69,13 +78,10 @@ func main() {
 	}
 	peers = append(peers, "127.0.0.1:9999")
 
-	blocks := &blockdb.BlockDB{}
-	blocks.Init(peers)
-
 	p2pPeers := blockev.NewP2PPeers("test", *chainID, uint32(*startNum), peers)
-	p2pPeers.RegisterHandler(blockev.LoggerHandler{})
+	//p2pPeers.RegisterHandler(blockev.LoggerHandler{})
 	p2pPeers.RegisterHandler(blockev.NewP2PMsgHandler(&handlerImp{
-		db: blocks,
+		verifier: blockdb.NewFastBlockVerifier(peers, &verifyHandlerImp{}),
 	}))
 	p2pPeers.Start()
 
