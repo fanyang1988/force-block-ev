@@ -38,7 +38,7 @@ type P2PPeers struct {
 }
 
 // NewP2PPeers new p2p peers from cfg
-func NewP2PPeers(name string, chainID string, startBlockNum uint32, peers []string) *P2PPeers {
+func NewP2PPeers(name string, chainID string, startBlock *eos.BlockHeader, peers []string) *P2PPeers {
 	p := &P2PPeers{
 		name:     name,
 		clients:  make([]*p2p.Client, 0, len(peers)),
@@ -53,12 +53,22 @@ func NewP2PPeers(name string, chainID string, startBlockNum uint32, peers []stri
 		panic(err)
 	}
 
+	var startBlockNum uint32 = 1
+	var startBlockId eos.Checksum256
+	var startBlockTime time.Time
+	if startBlock != nil {
+		startBlockId, _ = startBlock.BlockID()
+		startBlockNum = startBlock.BlockNumber()
+		startBlockTime = startBlock.Timestamp.Time
+	}
 	for idx, peer := range peers {
 		p.logger.Debug("new peer client", zap.Int("idx", idx), zap.String("peer", peer))
 		client := p2p.NewClient(
 			p2p.NewOutgoingPeer(peer, fmt.Sprintf("%s-%02d", name, idx), &p2p.HandshakeInfo{
-				ChainID:      cID,
-				HeadBlockNum: startBlockNum,
+				ChainID:       cID,
+				HeadBlockNum:  startBlockNum,
+				HeadBlockID:   startBlockId,
+				HeadBlockTime: startBlockTime,
 			}),
 			true,
 		)

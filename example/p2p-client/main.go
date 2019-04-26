@@ -78,7 +78,7 @@ func main() {
 	}
 	peers = append(peers, "127.0.0.1:9999")
 
-	p2pPeers := blockev.NewP2PPeers("test", *chainID, uint32(*startNum), peers)
+	p2pPeers := blockev.NewP2PPeers("test", *chainID, nil, peers)
 	//p2pPeers.RegisterHandler(blockev.LoggerHandler{})
 	p2pPeers.RegisterHandler(blockev.NewP2PMsgHandler(&handlerImp{
 		verifier: blockdb.NewFastBlockVerifier(peers, &verifyHandlerImp{}),
