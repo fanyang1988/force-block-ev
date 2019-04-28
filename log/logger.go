@@ -24,3 +24,8 @@ func EnableLogging(production bool) {
 func Logger() *zap.Logger {
 	return logger
 }
+
+// SetLogger set logger
+func SetLogger(l *zap.Logger) {
+	logger = l
+}
