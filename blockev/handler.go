@@ -1,13 +1,8 @@
 package blockev
 
 import (
-	"github.com/eosforce/goforceio/ecc"
 	"github.com/fanyang1988/force-block-ev/log"
 )
-
-func init() {
-	ecc.PublicKeyPrefixCompat = "FOSC"
-}
 
 type HandlerFunc func(envelope *Envelope)
 
