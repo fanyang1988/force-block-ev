@@ -66,7 +66,7 @@ func (h *verifyHandlerImp) OnBlock(blockNum uint32, blockID eos.Checksum256, blo
 }
 
 func getBlockBegin(num uint32) *types.BlockGeneralInfo {
-	client, err := force.NewClient(force.FORCEIO, &config.ConfigData{
+	client, err := force.NewClient(types.FORCEIO, &config.ConfigData{
 		ChainID: *chainID,
 		URL:     *url,
 	})
