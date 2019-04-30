@@ -1,19 +1,19 @@
 package blockdb
 
 import (
-	eos "github.com/eosforce/goforceio"
 	"github.com/fanyang1988/force-block-ev/log"
+	"github.com/fanyang1988/force-go/types"
 	"go.uber.org/zap"
 )
 
 type VerifyHandler interface {
-	OnBlock(blockNum uint32, blockID eos.Checksum256, block *eos.SignedBlock) error
+	OnBlock(block *types.BlockGeneralInfo) error
 }
 
 type FastBlockVerifier struct {
 	db            *BlockDB
 	verifyHandler VerifyHandler
-	lastVerify    blockItem
+	lastVerifyNum uint32
 	startBlock    uint32
 }
 
@@ -27,7 +27,7 @@ func NewFastBlockVerifier(peers []string, startBlock uint32, verifyHandler Verif
 		startBlock:    startBlock,
 	}
 	if startBlock > 1 {
-		res.lastVerify.blockNum = startBlock - 1
+		res.lastVerifyNum = startBlock - 1
 	}
 	return res
 }
@@ -36,13 +36,13 @@ func NewFastBlockVerifier(peers []string, startBlock uint32, verifyHandler Verif
 func (f *FastBlockVerifier) checkBlocks() error {
 	bi, ok := f.TryGetVerifyBlock()
 	if ok {
-		err := f.verifyHandler.OnBlock(bi.blockNum, bi.blockID, bi.block)
+		err := f.verifyHandler.OnBlock(bi.block)
 		if err != nil {
 			// no del block
 			return err
 		}
-		f.lastVerify = *bi
-		f.db.DelBlockBefore(f.lastVerify.blockNum - 3)
+		f.lastVerifyNum = bi.block.BlockNum
+		f.db.DelBlockBefore(f.lastVerifyNum - 3)
 
 		return nil
 	}
@@ -51,8 +51,8 @@ func (f *FastBlockVerifier) checkBlocks() error {
 }
 
 // OnBlock
-func (f *FastBlockVerifier) OnBlock(peer string, block *eos.SignedBlock) error {
-	if block.BlockNumber() > f.lastVerify.blockNum {
+func (f *FastBlockVerifier) OnBlock(peer string, block *types.BlockGeneralInfo) error {
+	if block.BlockNum > f.lastVerifyNum {
 		err := f.db.OnBlock(peer, block)
 		if err != nil {
 			return err
@@ -63,7 +63,7 @@ func (f *FastBlockVerifier) OnBlock(peer string, block *eos.SignedBlock) error {
 
 func (f *FastBlockVerifier) TryGetVerifyBlock() (*blockItem, bool) {
 	// TODO now is a simple imp
-	num2Verify := f.lastVerify.blockNum + 1
+	num2Verify := f.lastVerifyNum + 1
 	var bi *blockItem
 	for peer, stat := range f.db.Peers {
 		// 1. every peer blocks are no fork
@@ -82,9 +82,7 @@ func (f *FastBlockVerifier) TryGetVerifyBlock() (*blockItem, bool) {
 		if bi == nil && first != nil {
 			bi = first
 		} else {
-			if (first == nil) ||
-				(!IsChecksum256Eq(bi.blockID, first.blockID)) ||
-				(!IsChecksum256Eq(bi.block.Previous, first.block.Previous)) {
+			if (first == nil) || (bi != nil && !IsBlockEq(bi.block, first.block)) {
 				return nil, false
 			}
 		}

@@ -1,8 +1,8 @@
 package blockdb
 
 import (
-	eos "github.com/eosforce/goforceio"
 	"github.com/fanyang1988/force-block-ev/log"
+	"github.com/fanyang1988/force-go/types"
 	"go.uber.org/zap"
 )
 
@@ -10,9 +10,7 @@ const defaultForkBlocksInOneNumSize int = 32
 
 type blockItem struct {
 	preBlockIdx int
-	blockNum    uint32
-	blockID     eos.Checksum256
-	block       *eos.SignedBlock
+	block       *types.BlockGeneralInfo
 }
 
 type blockInNum struct {
@@ -20,7 +18,7 @@ type blockInNum struct {
 	blocks   []blockItem
 }
 
-func (b *blockInNum) find(block *eos.SignedBlock) int {
+func (b *blockInNum) find(block *types.BlockGeneralInfo) int {
 	for idx, bk := range b.blocks {
 		if IsBlockEq(bk.block, block) {
 			return idx
@@ -29,9 +27,9 @@ func (b *blockInNum) find(block *eos.SignedBlock) int {
 	return -1
 }
 
-func (b *blockInNum) findByID(blockID eos.Checksum256) int {
+func (b *blockInNum) findByID(blockID types.Checksum256) int {
 	for idx, bk := range b.blocks {
-		if IsChecksum256Eq(blockID, bk.blockID) {
+		if IsChecksum256Eq(blockID, bk.block.ID) {
 			return idx
 		}
 	}
@@ -64,13 +62,10 @@ func (p *PeerBlockState) newBlockNum() uint32 {
 	return p.blocks[len(p.blocks)-1].blockNum
 }
 
-func (p *PeerBlockState) appendBlock(block *eos.SignedBlock) error {
+func (p *PeerBlockState) appendBlock(block *types.BlockGeneralInfo) error {
 	// TODO just a simple imp
-	blockNum := block.BlockNumber()
-	blockID, err := block.BlockID()
-	if err != nil {
-		return err
-	}
+	blockNum := block.BlockNum
+	blockID := block.ID
 
 	//log.Logger().Debug("block append",
 	//	zap.Uint32("num", blockNum), zap.String("id", blockID.String()))
@@ -129,8 +124,6 @@ func (p *PeerBlockState) appendBlock(block *eos.SignedBlock) error {
 
 	p.blocks[blockNum-firstBlockNum].append(blockItem{
 		perBlockIdx,
-		blockNum,
-		blockID,
 		block,
 	})
 

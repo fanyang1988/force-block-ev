@@ -40,28 +40,20 @@ type handlerImp struct {
 	verifier *blockdb.FastBlockVerifier
 }
 
-func (h *handlerImp) OnBlock(peer string, msg *eos.SignedBlock) error {
+func (h *handlerImp) OnBlock(peer string, msg *types.BlockGeneralInfo) error {
 	log.Logger().Info("on checked block")
 	return h.verifier.OnBlock(peer, msg)
 }
-func (h *handlerImp) OnGoAway(peer string, msg *eos.GoAwayMessage) error {
-	return nil
-}
-func (h *handlerImp) OnHandshake(peer string, msg *eos.HandshakeMessage) error {
-	return nil
-}
-func (h *handlerImp) OnTimeMsg(peer string, msg *eos.TimeMessage) error {
+func (h *handlerImp) OnGoAway(peer string, reason uint8, nodeID types.Checksum256) error {
 	return nil
 }
 
 type verifyHandlerImp struct {
 }
 
-func (h *verifyHandlerImp) OnBlock(blockNum uint32, blockID eos.Checksum256, block *eos.SignedBlock) error {
+func (h *verifyHandlerImp) OnBlock(block *types.BlockGeneralInfo) error {
 	log.Logger().Info("on checked block",
-		zap.Uint32("num", blockNum), zap.String("id", blockID.String()), zap.Int("trx num", len(block.Transactions)))
-	log.Logger().Sugar().Infof("block %v", *block)
-	log.Logger().Sugar().Infof("block %s", block.String())
+		zap.Uint32("num", block.BlockNum), zap.String("id", block.ID.String()), zap.Int("trx num", len(block.Transactions)))
 	return nil
 }
 

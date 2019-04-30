@@ -1,7 +1,7 @@
 package blockdb
 
 import (
-	eos "github.com/eosforce/goforceio"
+	"github.com/fanyang1988/force-go/types"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +22,7 @@ func (b *BlockDB) Init(peers []string) {
 	}
 }
 
-func (b *BlockDB) OnBlock(peer string, block *eos.SignedBlock) error {
+func (b *BlockDB) OnBlock(peer string, block *types.BlockGeneralInfo) error {
 	ps, ok := b.Peers[peer]
 	if !ok || ps == nil {
 		return errors.New("no peer")
