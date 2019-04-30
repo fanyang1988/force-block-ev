@@ -37,8 +37,16 @@ type P2PPeers struct {
 	logger    *zap.Logger
 }
 
+type P2PSyncData struct {
+	HeadBlockNum             uint32
+	HeadBlockID              eos.Checksum256
+	HeadBlockTime            time.Time
+	LastIrreversibleBlockNum uint32
+	LastIrreversibleBlockID  eos.Checksum256
+}
+
 // NewP2PPeers new p2p peers from cfg
-func NewP2PPeers(name string, chainID string, startBlock *eos.BlockHeader, peers []string) *P2PPeers {
+func NewP2PPeers(name string, chainID string, startBlock *P2PSyncData, peers []string) *P2PPeers {
 	p := &P2PPeers{
 		name:     name,
 		clients:  make([]*p2p.Client, 0, len(peers)),
@@ -56,19 +64,25 @@ func NewP2PPeers(name string, chainID string, startBlock *eos.BlockHeader, peers
 	var startBlockNum uint32 = 1
 	var startBlockId eos.Checksum256
 	var startBlockTime time.Time
+	var irrBlockNum uint32 = 0
+	var irrBlockId eos.Checksum256
 	if startBlock != nil {
-		startBlockId, _ = startBlock.BlockID()
-		startBlockNum = startBlock.BlockNumber()
-		startBlockTime = startBlock.Timestamp.Time
+		startBlockId = startBlock.HeadBlockID
+		startBlockNum = startBlock.HeadBlockNum
+		startBlockTime = startBlock.HeadBlockTime
+		irrBlockNum = startBlock.LastIrreversibleBlockNum
+		irrBlockId = startBlock.LastIrreversibleBlockID
 	}
 	for idx, peer := range peers {
 		p.logger.Debug("new peer client", zap.Int("idx", idx), zap.String("peer", peer))
 		client := p2p.NewClient(
 			p2p.NewOutgoingPeer(peer, fmt.Sprintf("%s-%02d", name, idx), &p2p.HandshakeInfo{
-				ChainID:       cID,
-				HeadBlockNum:  startBlockNum,
-				HeadBlockID:   startBlockId,
-				HeadBlockTime: startBlockTime,
+				ChainID:                  cID,
+				HeadBlockNum:             startBlockNum,
+				HeadBlockID:              startBlockId,
+				HeadBlockTime:            startBlockTime,
+				LastIrreversibleBlockNum: irrBlockNum,
+				LastIrreversibleBlockID:  irrBlockId,
 			}),
 			true,
 		)

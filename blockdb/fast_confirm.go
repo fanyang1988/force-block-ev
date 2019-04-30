@@ -14,16 +14,22 @@ type FastBlockVerifier struct {
 	db            *BlockDB
 	verifyHandler VerifyHandler
 	lastVerify    blockItem
+	startBlock    uint32
 }
 
 // NewFastBlockVerifier create
-func NewFastBlockVerifier(peers []string, verifyHandler VerifyHandler) *FastBlockVerifier {
+func NewFastBlockVerifier(peers []string, startBlock uint32, verifyHandler VerifyHandler) *FastBlockVerifier {
 	blocks := &BlockDB{}
 	blocks.Init(peers)
-	return &FastBlockVerifier{
+	res := &FastBlockVerifier{
 		db:            blocks,
 		verifyHandler: verifyHandler,
+		startBlock:    startBlock,
 	}
+	if startBlock > 1 {
+		res.lastVerify.blockNum = startBlock - 1
+	}
+	return res
 }
 
 // CheckBlocks Call when append block to db
