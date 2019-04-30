@@ -9,8 +9,6 @@ import (
 type P2PMsgHandlerImp interface {
 	OnBlock(peer string, msg *eos.SignedBlock) error
 	OnGoAway(peer string, msg *eos.GoAwayMessage) error
-	OnHandshake(peer string, msg *eos.HandshakeMessage) error
-	OnTimeMsg(peer string, msg *eos.TimeMessage) error
 }
 
 type P2PMsgHandler struct {
@@ -58,24 +56,6 @@ func (m P2PMsgHandler) handlerGoAway(peer string, msg *eos.GoAwayMessage) error 
 		zap.String("peer", peer), zap.String("reason", msg.Reason.String()))
 	if m.imp != nil {
 		return m.imp.OnGoAway(peer, msg)
-	}
-	return nil
-}
-
-func (m P2PMsgHandler) handlerTime(peer string, msg *eos.TimeMessage) error {
-	log.Logger().Debug("on time",
-		zap.String("peer", peer), zap.String("time", msg.String()))
-	if m.imp != nil {
-		return m.imp.OnTimeMsg(peer, msg)
-	}
-	return nil
-}
-
-func (m P2PMsgHandler) handlerHandshake(peer string, msg *eos.HandshakeMessage) error {
-	log.Logger().Debug("on handshake",
-		zap.String("peer", peer), zap.String("handshake", msg.String()))
-	if m.imp != nil {
-		return m.imp.OnHandshake(peer, msg)
 	}
 	return nil
 }
