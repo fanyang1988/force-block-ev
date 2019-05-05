@@ -1,8 +1,10 @@
 package blockdb
 
-import eos "github.com/eosforce/goforceio"
+import (
+	"github.com/fanyang1988/force-go/types"
+)
 
-func IsChecksum256Eq(l, r eos.Checksum256) bool {
+func IsChecksum256Eq(l, r types.Checksum256) bool {
 	if len(l) != len(r) {
 		return false
 	}
@@ -21,9 +23,6 @@ func IsChecksum256Eq(l, r eos.Checksum256) bool {
 }
 
 // IsBlockEq return if block l == r
-func IsBlockEq(l *eos.SignedBlock, r *eos.SignedBlock) bool {
-	lId, _ := l.BlockID()
-	rId, _ := r.BlockID()
-	// Just check id is ok
-	return IsChecksum256Eq(lId, rId) && IsChecksum256Eq(l.Previous, r.Previous)
+func IsBlockEq(l, r *types.BlockGeneralInfo) bool {
+	return IsChecksum256Eq(l.ID, l.ID) && IsChecksum256Eq(l.Previous, r.Previous)
 }
