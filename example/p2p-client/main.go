@@ -8,13 +8,11 @@ import (
 	"runtime"
 	"syscall"
 
-	eos "github.com/eosforce/goforceio"
-	"github.com/eosforce/goforceio/p2p"
 	"github.com/fanyang1988/force-block-ev/blockdb"
-	"github.com/fanyang1988/force-block-ev/blockev"
 	"github.com/fanyang1988/force-block-ev/log"
 	"github.com/fanyang1988/force-go"
 	"github.com/fanyang1988/force-go/config"
+	"github.com/fanyang1988/force-go/p2p"
 	"github.com/fanyang1988/force-go/types"
 	"go.uber.org/zap"
 )
@@ -83,7 +81,6 @@ func main() {
 
 	if *showLog {
 		log.EnableLogging(false)
-		p2p.EnableP2PLogging()
 	}
 
 	// from 9001 - 9020
@@ -99,30 +96,41 @@ func main() {
 		peers = append(peers, *p2pAddress)
 	}
 
-	var stratBlock *blockev.P2PSyncData
+	var stratBlock *p2p.P2PSyncData
 	if *startNum != 0 {
 		block := getBlockBegin(uint32(*startNum))
 		blockirr := getBlockBegin(uint32(*startNum) - 15)
 
-		stratBlock = &blockev.P2PSyncData{
+		stratBlock = &p2p.P2PSyncData{
 			HeadBlockNum:             block.BlockNum,
-			HeadBlockID:              eos.Checksum256(block.ID),
+			HeadBlockID:              block.ID,
 			HeadBlockTime:            block.Timestamp,
 			LastIrreversibleBlockNum: blockirr.BlockNum,
-			LastIrreversibleBlockID:  eos.Checksum256(blockirr.ID),
+			LastIrreversibleBlockID:  blockirr.ID,
 		}
 		log.Logger().Sugar().Infof("start %v", *stratBlock)
 	}
 
-	p2pPeers := blockev.NewP2PPeers("test", *chainID, stratBlock, peers)
-	p2pPeers.RegisterHandler(blockev.LoggerHandler{})
-	log.Logger().Info("dd")
-	p2pPeers.RegisterHandler(blockev.NewP2PMsgHandler(&handlerImp{
+	p2pPeers := p2p.NewP2PClient(types.EOSForce, p2p.P2PInitParams{
+		Name:       "testNode",
+		ClientID:   *chainID,
+		StartBlock: stratBlock,
+		Peers:      peers[:],
+		Logger:     log.Logger(),
+	})
+
+	p2pPeers.RegHandler(&handlerImp{
 		verifier: blockdb.NewFastBlockVerifier(peers, uint32(*startNum), &verifyHandlerImp{}),
-	}))
-	p2pPeers.Start()
+	})
+	err := p2pPeers.Start()
+	if err != nil {
+		log.Logger().Error("start err", zap.Error(err))
+	}
 
 	Wait()
 
-	p2pPeers.Close()
+	err = p2pPeers.CloseConnection()
+	if err != nil {
+		log.Logger().Error("start err", zap.Error(err))
+	}
 }
