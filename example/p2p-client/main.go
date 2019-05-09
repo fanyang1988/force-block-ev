@@ -17,11 +17,11 @@ import (
 	"go.uber.org/zap"
 )
 
-var chainID = flag.String("chain-id", "bd61ae3a031e8ef2f97ee3b0e62776d6d30d4833c8f7c1645c657b149151004b", "net chainID to connect to")
+var chainID = flag.String("chain-id", "66b03fd7b1fa2f86afa0bdb408e1261494001b08a3ba16d5093f8d1c3d44f385", "net chainID to connect to")
 var showLog = flag.Bool("v", false, "show detail log")
 var startNum = flag.Int("num", 1, "start block num to sync")
 var p2pAddress = flag.String("p2p", "", "p2p address")
-var url = flag.String("url", "", "p2p address")
+var url = flag.String("url", "http://127.0.0.1:8001", "p2p address")
 
 // Wait wait for term signal, then stop the server
 func Wait() {
@@ -91,32 +91,16 @@ func main() {
 		for i := 0; i < maxNumListen; i++ {
 			peers = append(peers, fmt.Sprintf("127.0.0.1:%d", 8101+i))
 		}
-		peers = append(peers, "127.0.0.1:9999")
 	} else {
 		peers = append(peers, *p2pAddress)
 	}
 
-	var stratBlock *p2p.P2PSyncData
-	if *startNum != 0 {
-		block := getBlockBegin(uint32(*startNum))
-		blockirr := getBlockBegin(uint32(*startNum) - 15)
-
-		stratBlock = &p2p.P2PSyncData{
-			HeadBlockNum:             block.BlockNum,
-			HeadBlockID:              block.ID,
-			HeadBlockTime:            block.Timestamp,
-			LastIrreversibleBlockNum: blockirr.BlockNum,
-			LastIrreversibleBlockID:  blockirr.ID,
-		}
-		log.Logger().Sugar().Infof("start %v", *stratBlock)
-	}
-
-	p2pPeers := p2p.NewP2PClient(types.EOSForce, p2p.P2PInitParams{
-		Name:       "testNode",
-		ClientID:   *chainID,
-		StartBlock: stratBlock,
-		Peers:      peers[:],
-		Logger:     log.Logger(),
+	p2pPeers := p2p.NewP2PClient(types.FORCEIO, p2p.P2PInitParams{
+		Name:          "testNode",
+		ClientID:      *chainID,
+		StartBlockNum: uint32(*startNum),
+		Peers:         peers[:],
+		Logger:        log.Logger(),
 	})
 
 	p2pPeers.RegHandler(&handlerImp{
