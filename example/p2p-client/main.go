@@ -8,13 +8,14 @@ import (
 	"runtime"
 	"syscall"
 
+	gocodex "github.com/codexnetwork/codex-go"
+	"github.com/codexnetwork/codex-go/config"
+	"github.com/codexnetwork/codex-go/p2p"
+	"github.com/codexnetwork/codex-go/types"
+	"go.uber.org/zap"
+
 	"github.com/fanyang1988/force-block-ev/blockdb"
 	"github.com/fanyang1988/force-block-ev/log"
-	"github.com/fanyang1988/force-go"
-	"github.com/fanyang1988/force-go/config"
-	"github.com/fanyang1988/force-go/p2p"
-	"github.com/fanyang1988/force-go/types"
-	"go.uber.org/zap"
 )
 
 var chainID = flag.String("chain-id", "66b03fd7b1fa2f86afa0bdb408e1261494001b08a3ba16d5093f8d1c3d44f385", "net chainID to connect to")
@@ -56,7 +57,7 @@ func (h *verifyHandlerImp) OnBlock(block *types.BlockGeneralInfo) error {
 }
 
 func getBlockBegin(num uint32) *types.BlockGeneralInfo {
-	client, err := force.NewClient(types.FORCEIO, &config.ConfigData{
+	client, err := gocodex.NewClient(types.FORCEIO, &config.ConfigData{
 		ChainID: *chainID,
 		URL:     *url,
 	})

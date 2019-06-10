@@ -2,7 +2,7 @@ package blockdb
 
 import (
 	"github.com/fanyang1988/force-block-ev/log"
-	"github.com/fanyang1988/force-go/types"
+	"github.com/codexnetwork/codex-go/types"
 	"go.uber.org/zap"
 )
 

@@ -1,7 +1,7 @@
 package blockdb
 
 import (
-	"github.com/fanyang1988/force-go/types"
+	"github.com/codexnetwork/codex-go/types"
 	"github.com/pkg/errors"
 )
 

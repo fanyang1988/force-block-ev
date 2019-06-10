@@ -1,7 +1,7 @@
 package blockdb
 
 import (
-	"github.com/fanyang1988/force-go/types"
+	"github.com/codexnetwork/codex-go/types"
 )
 
 func IsChecksum256Eq(l, r types.Checksum256) bool {
